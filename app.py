@@ -4,6 +4,9 @@ from pinecone import Pinecone
 from openai import OpenAI
 import os
 import requests
+from dotenv import load_dotenv  # Import dotenv
+
+load_dotenv()
 
 
 app = Flask(__name__)
@@ -13,10 +16,11 @@ CORS(app)
 chat_history = []
 
 # API Keys and Configuration from environment variables
-PINECONE_API_KEY = "pcsk_BKerG_Q89WDmxHRMcj37fTbfij2t6GtwjEp4akXWvQ2AYVJDFCA97aWFNTyZQoqd3c34u"
+
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_NAME = "tatweer-rag-tf"
-GEMINI_API_KEY = 'AIzaSyB59KEExXDIVvkUljOLCY4iBusHfjgwYmk'
-OPENAI_API_KEY = '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'
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GEMINI_MODEL_NAME = "gemini-2.0-flash-exp" 
 
 # Initialize OpenAI client
