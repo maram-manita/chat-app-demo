@@ -1,28 +1,30 @@
-# app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pinecone import Pinecone
 from openai import OpenAI
 import os
 import requests
-from dotenv import load_dotenv 
+from dotenv import load_dotenv
 from sentence_transformers import CrossEncoder
 
+# Load environment variables
 load_dotenv()
 
+# Initialize Flask app
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "https://tatweer-chat-app-demo.netlify.app/"}})
+
+# Fix CORS configuration
+CORS(app, resources={r"/api/*": {"origins": "https://tatweer-chat-app-demo.netlify.app"}})  # Remove trailing slash
 
 # Global chat history (simple list)
 chat_history = []
 
 # API Keys and Configuration from environment variables
-
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_NAME = "tatweer-rag-tf"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GEMINI_MODEL_NAME = "gemini-2.0-flash-exp" 
+GEMINI_MODEL_NAME = "gemini-2.0-flash-exp"
 
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -33,8 +35,10 @@ pc = Pinecone(api_key=PINECONE_API_KEY)
 # Connect to the index
 index = pc.Index(INDEX_NAME) if PINECONE_API_KEY else None
 
+# Initialize reranker
 reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
 
+# Helper functions (unchanged)
 def rephrase_query(user_query: str) -> str:
     """Rephrase the user query for better retrieval."""
     response = client.chat.completions.create(
@@ -58,7 +62,7 @@ def generate_embeddings(text):
     """Generate embeddings using OpenAI."""
     try:
         return client.embeddings.create(
-            model="text-embedding-3-large",  # Ensure this model is available in your OpenAI account
+            model="text-embedding-3-large",
             input=text
         ).data[0].embedding
     except Exception as e:
@@ -75,7 +79,7 @@ def generate_gemini_response(prompt):
                 "generationConfig": {"maxOutputTokens": 1000, "temperature": 0.2}
             }
         )
-        response.raise_for_status()  # Raise an error for bad status codes
+        response.raise_for_status()
         return response.json()['candidates'][0]['content']['parts'][0]['text']
     except Exception as e:
         print(f"Gemini error: {e}")
@@ -84,34 +88,24 @@ def generate_gemini_response(prompt):
 def generate_response(user_input):
     """Generate a response to the user's input."""
     try:
-        # Step 1: Rephrase the query
         refined_query = user_input
-
-        # Step 2: Generate embeddings for the refined query
         embedding = generate_embeddings(refined_query)
         if not embedding:
             return {"error": "Embedding generation failed"}
 
-        # Step 3: Query Pinecone index
         query_response = index.query(vector=embedding, top_k=20, include_metadata=True)
-        print('query_response  ', query_response)
-
-        # Step 4: Rerank results
         reranked_chunks = rerank_results(refined_query, query_response.matches)
 
-        # Step 5: Format chat history for prompt
         history_str = "\n".join(
             f"User: {entry['user']}\nBot: {entry['bot']}"
-            for entry in chat_history[-3:]  # Keep last 3 exchanges
+            for entry in chat_history[-3:]
         )
 
-        # Step 6: Construct context string from reranked chunks
         context_str = "\n".join(
             f"{chunk['metadata']['chunk_content']}"
             for chunk in reranked_chunks[:6]
         )
 
-        # Step 7: Construct prompt with history and context
         prompt = f"""Previous conversation:
                         {history_str}
 
@@ -174,12 +168,10 @@ def generate_response(user_input):
 
                         [المصدر: file_name]"""
 
-        # Step 8: Generate response using Gemini
         gemini_response = generate_gemini_response(prompt)
         if not gemini_response:
             return {"error": "Response generation failed"}
 
-        # Extract chunk_content from reranked_chunks
         reranked_chunk_contents = [
             chunk['metadata']['chunk_content'] for chunk in reranked_chunks[:6]
         ]
@@ -187,22 +179,40 @@ def generate_response(user_input):
         return {
             "analysis": gemini_response,
             "matches": reranked_chunks[:6],
-            "reranked_chunk_contents": reranked_chunk_contents  # Add reranked chunk contents
+            "reranked_chunk_contents": reranked_chunk_contents
         }
     except Exception as e:
         return {"error": f"Processing error: {str(e)}"}
 
+# Handle preflight requests
+@app.route('/api/chat', methods=['OPTIONS'])
+def handle_options():
+    headers = {
+        "Access-Control-Allow-Origin": "https://tatweer-chat-app-demo.netlify.app",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+    }
+    return "", 204, headers
+
+# Main chat endpoint
 @app.route('/api/chat', methods=['POST'])
 def chat_endpoint():
     try:
+        # Add CORS headers
+        headers = {
+            "Access-Control-Allow-Origin": "https://tatweer-chat-app-demo.netlify.app",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+
         data = request.get_json()
         if not data or 'message' not in data:
-            return jsonify({"error": "Invalid input"}), 400
+            return jsonify({"error": "Invalid input"}), 400, headers
 
         user_message = data['message'].strip()
         result = generate_response(user_message)
         if "error" in result:
-            return jsonify(result), 500
+            return jsonify(result), 500, headers
 
         # Store in history after successful response
         chat_history.append({
@@ -223,17 +233,17 @@ def chat_endpoint():
                     "type": chunk['metadata'].get('doc_type', 'unclassified'),
                     "score": chunk['score'],
                     "file_name": chunk['metadata'].get('file_name', 'Unknown'),
-                    "file_url": chunk['metadata'].get('file_url', '#')  # Add file_url
+                    "file_url": chunk['metadata'].get('file_url', '#')
                 } for i, chunk in enumerate(result["matches"])
             ],
-            "reranked_chunk_contents": result["reranked_chunk_contents"]  # Include reranked chunk contents
-        })
+            "reranked_chunk_contents": result["reranked_chunk_contents"]
+        }), 200, headers
     except Exception as e:
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
+        return jsonify({"error": f"Server error: {str(e)}"}), 500, headers
 
+# Health check endpoint
 @app.route('/api/health')
 def health_check():
-    """Health check endpoint."""
     return jsonify({
         "status": "ok",
         "pinecone": index is not None,
@@ -241,5 +251,6 @@ def health_check():
         "gemini": bool(GEMINI_API_KEY)
     })
 
+# Run the app
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
