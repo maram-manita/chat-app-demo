@@ -14,7 +14,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Fix CORS configuration
-CORS(app, resources={r"/api/*": {"origins": "https://tatweer-chat-app-demo.netlify.app"}})  # Remove trailing slash
+CORS(app, resources={r"/api/*": {"origins": "*"}})  # Remove trailing slash
 
 # Global chat history (simple list)
 chat_history = []
@@ -188,7 +188,7 @@ def generate_response(user_input):
 @app.route('/api/chat', methods=['OPTIONS'])
 def handle_options():
     headers = {
-        "Access-Control-Allow-Origin": "https://tatweer-chat-app-demo.netlify.app",
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
     }
@@ -200,7 +200,7 @@ def chat_endpoint():
     try:
         # Add CORS headers
         headers = {
-            "Access-Control-Allow-Origin": "https://tatweer-chat-app-demo.netlify.app",
+            "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
         }
