@@ -11,7 +11,7 @@ from sentence_transformers import CrossEncoder
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "https://tatweer-chat-app-demo.netlify.app/"}})
 
 # Global chat history (simple list)
 chat_history = []
