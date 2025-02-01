@@ -5,13 +5,8 @@ from pinecone import Pinecone
 from openai import OpenAI
 import os
 import requests
-from dotenv import load_dotenv  # Import dotenv
-<<<<<<< HEAD
-
-load_dotenv()
-=======
+from dotenv import load_dotenv 
 from sentence_transformers import CrossEncoder
->>>>>>> 3b06acd
 
 load_dotenv()
 
@@ -21,7 +16,6 @@ CORS(app)
 # Global chat history (simple list)
 chat_history = []
 
-<<<<<<< HEAD
 # API Keys and Configuration from environment variables
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
@@ -29,13 +23,6 @@ INDEX_NAME = "tatweer-rag-tf"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GEMINI_MODEL_NAME = "gemini-2.0-flash-exp" 
-=======
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-INDEX_NAME = "tatweer-rag-no-context"
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GEMINI_MODEL_NAME = "gemini-2.0-flash-exp"
->>>>>>> 3b06acd
 
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
