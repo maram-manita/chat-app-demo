@@ -1,2 +1,8 @@
+<<<<<<< HEAD
 venv
 .env
+=======
+/venv
+.env
+/new_venv
+>>>>>>> 3b06acd
