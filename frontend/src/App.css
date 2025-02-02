@@ -113,6 +113,7 @@ body {
 
 .input-container input {
   width: 100%;
+  color:#2d3748;
   padding: 1rem 3rem 1rem 1.5rem;
   border: 2px solid #e2e8f0;
   border-radius: 1.5rem;
@@ -346,4 +347,27 @@ body {
   .inline-code {
     background: rgba(255, 255, 255, 0.1);
   }
+}
+
+.suggestions-container {
+  display: flex;
+  flex-direction: column;
+  
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.suggestion-button {
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #4a5568;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background-color: #f7f7f7;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.suggestion-button:hover {
+  background-color: #eaeaea;
 }
